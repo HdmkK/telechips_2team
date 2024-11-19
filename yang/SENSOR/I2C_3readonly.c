@@ -5,9 +5,9 @@
 #include <linux/i2c-dev.h>
 #include <sys/ioctl.h>
 
-#define I2C_ADDR 0x48     //i2cdetect -y 1로 확인한 값.
-#define I2C_ADDR2 0x4A    //2nd address
-#define I2C_ADDR3 0x49
+#define I2C_ADDR 0x48     //0x48 module i2c
+#define I2C_ADDR2 0x4A    //0x4A module i2c
+#define I2C_ADDR3 0x49    //0x49 module i2c
 #define SENSOR_CHANNEL1 0x40 //A0값을 읽기 위해 필요한 cmd값.
 
 int get_data_from_addr(int file,int addr)
