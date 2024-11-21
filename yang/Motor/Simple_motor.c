@@ -1,16 +1,16 @@
 #include <linux/kernel.h>
 #include <linux/init.h>
-#include <linux/fs.h>
 #include <linux/module.h>
+#include <linux/fs.h>
 #include <linux/gpio.h>
 #include <linux/interrupt.h>
 #include <linux/delay.h>
 #include <linux/cdev.h>
 
-#define PIN1 84 //gpioc 23 : 물리 11번
-#define PIN1 85 //gpioc 24 : 물리 13번
-#define PIN1 90 //gpioc 29 : 물리 16번
-#define PIN1 65 //gpioc 04 : 물리 18번
+#define PIN1 84 //gpioc 23 : 물리 11번 06 blue -> yellow
+#define PIN2 85 //gpioc 24 : 물리 13번 13 pink -> green
+#define PIN3 90 //gpioc 29 : 물리 16번 19 yellow -> blue
+#define PIN4 65 //gpioc 04 : 물리 18번 26 orange -> purple
 
 #define STEPS 8
 #define ONEROUND 512
@@ -31,9 +31,9 @@ void backward(int round, int delay) {
     int i = 0, j = 0;
 
     for (i = 0; i < ONEROUND * round; i++) {
-        for(j = STEPS; j >0; j++;){
+        for(j = STEPS; j >0; j--){
             setstep(blue[j], pink[j], yellow[j], orange[j]);
-            usleep(delay);
+            udelay(delay);
         }
     }
     setstep(0, 0, 0, 0);
@@ -43,22 +43,25 @@ void forward(int round, int delay) {
     int i = 0, j = 0;
 
     for (i = 0; i < ONEROUND * round; i++) {
-        for(j = STEPS; j >0; j++;)
+        for(j = STEPS; j >0; j--) {
             setstep(blue[j], pink[j], yellow[j], orange[j]);
-            usleep(delay);
+            udelay(delay);
+        }
     }
     setstep(0, 0, 0, 0);
 }
 
 static int __init simple_motor_init(void) {
     gpio_request_one(PIN1, GPIOF_OUT_INIT_LOW, "p1");
-    gpio_request_one(PIN1, GPIOF_OUT_INIT_LOW, "p2");
-    gpio_request_one(PIN1, GPIOF_OUT_INIT_LOW, "p3");
-    gpio_request_one(PIN1, GPIOF_OUT_INIT_LOW, "p4");
+    gpio_request_one(PIN2, GPIOF_OUT_INIT_LOW, "p2");
+    gpio_request_one(PIN3, GPIOF_OUT_INIT_LOW, "p3");
+    gpio_request_one(PIN4, GPIOF_OUT_INIT_LOW, "p4");
 
     forward(1,3000);
     mdelay(3000);
     backward(1,1500);
+    
+    return 0;
 }
 
 static void __exit simple_motor_exit(void) {
