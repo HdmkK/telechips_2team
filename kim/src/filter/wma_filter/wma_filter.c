@@ -50,7 +50,7 @@ float weighted_moving_average(FILTER *filter, float new_value) {
     return weighted_sum / total_weight;
 }
 
-int main() {
+/*int main() {
 
     float sensor_data[20] = {50, 52, 51, 53, 200, 54, 55, 57, 59, 60, 65, 70, 80, 85, 90, 150, 100, 95, 94, 93};
     float output;
@@ -76,4 +76,4 @@ int main() {
     }
 
     return 0;
-}
+}*/

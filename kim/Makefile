@@ -4,9 +4,9 @@ CFLAGS = -Wall -I/home/vboxuser/teamproject/kim/include -g
 
 # 디렉터리 설정
 ROOT_DIR = /home/vboxuser/teamproject/kim
-SRC_DIRS = $(ROOT_DIR)/src/app $(ROOT_DIR)/src/gpio $(ROOT_DIR)/src/i2c $(ROOT_DIR)/src/motor $(ROOT_DIR)/src/ultra
+SRC_DIRS = $(ROOT_DIR)/src/app $(ROOT_DIR)/src/gpio $(ROOT_DIR)/src/i2c $(ROOT_DIR)/src/motor $(ROOT_DIR)/src/ultra $(ROOT_DIR)/src/filter
 BUILD_DIR = $(ROOT_DIR)/build
-BUILD_SUBDIRS = $(addprefix $(BUILD_DIR)/, app gpio i2c motor ultra)
+BUILD_SUBDIRS = $(addprefix $(BUILD_DIR)/, app gpio i2c motor ultra filter)
 
 # 소스 파일 및 객체 파일
 SRC_FILES = $(wildcard $(addsuffix /*.c, $(SRC_DIRS)))

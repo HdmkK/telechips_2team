@@ -18,20 +18,20 @@ void ultra_gpio_init(){
 	setGPIOValue(ECHO, 1);
 }
 
-void trigger_ultra(){
+static void trigger_ultra(){
 	setGPIOValue(TRIG, 1);
 	usleep(10);
 	setGPIOValue(TRIG, 0);
 
 }
 
-unsigned long get_microseconds() {
+static unsigned long get_microseconds() {
     struct timeval time;
     gettimeofday(&time, NULL);
     return time.tv_sec * 1000000 + time.tv_usec;
 }
 
-int read_distance(){
+int get_distance(){
 	trigger_ultra();
 
 	while (getGPIOValue(ECHO) != 1);

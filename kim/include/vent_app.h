@@ -11,12 +11,12 @@
 
 #define SENSOR_M_DLY 100
 
-#define TIME_KEEP_VENTILATE 10
+#define TIME_KEEP_VENTILATE 20
 
 
 #define PRECIPITATION_THRESHOLD 100
 #define DISTANCE_THRESHOLD 10
-#define AIR_QUALITY_THRESHOLD 20
+#define AIR_QUALITY_THRESHOLD 100
 #define FINE_DUST_THRESHOLD 100
 
 
@@ -52,6 +52,7 @@ int destory_i2c();
 
 int read_precipitation();
 int read_air_quality();
+int read_distance();
 int read_fine_dust();
 
 

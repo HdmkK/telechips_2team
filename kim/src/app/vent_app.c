@@ -2,12 +2,11 @@
 #include "i2c.h"
 #include "filter.h"
 #include "motor.h"
+#include "ultra.h"
 
 
 
 int start_ventilate(){
-	//환기 모터 디바이스 드라이버에 OPEN ioctl 명령
-	//ioctl(fd, OPEN,...)
 
 	//창문이 닫힌 상태가 아님
 	if (cur_vent_state != CLOSED_COMPLETELY) return -1;
@@ -23,8 +22,6 @@ int start_ventilate(){
 }
 
 int stop_ventilate(){
-	//환기 모터 디바이스 드라이버에 CLOSE ioctl 명령
-	//ioctl(fd, CLOSE,...)
 
 	//창문이 열린 상태가 아님
 	if (cur_vent_state != OPEN_COMPLETELY) return -1;
@@ -45,6 +42,52 @@ void timer_handler(int signum){
 void* thread_func1(void* arg) {
 
 
+	FILTER precipitation_filter;
+	FILTER distance_filter;
+	FILTER air_quality_filter;
+	FILTER fine_dust_filter;
+
+	struct mv_avg_queue queue_for_precipitation = {
+	    .head = 0,
+	    .tail = 0,
+	    .count = 0,
+	    .sum = 0,
+	};
+
+	struct mv_avg_queue queue_for_distance = {
+	    .head = 0,
+	    .tail = 0,
+	    .count = 0,
+	    .sum = 0,
+	};
+
+	struct mv_avg_queue queue_for_air_quality = {
+	    .head = 0,
+	    .tail = 0,
+	    .count = 0,
+	    .sum = 0,
+	};
+
+	struct mv_avg_queue queue_for_fine_dust = {
+	    .head = 0,
+	    .tail = 0,
+	    .count = 0,
+	    .sum = 0,
+	};
+
+	precipitation_filter.data = &queue_for_precipitation;
+	precipitation_filter.filtering = moving_average;
+
+	distance_filter.data = &queue_for_distance;
+	distance_filter.filtering = moving_average;
+
+	air_quality_filter.data = &queue_for_air_quality;
+	air_quality_filter.filtering = moving_average;
+
+	fine_dust_filter.data = &queue_for_fine_dust;
+	fine_dust_filter.filtering = moving_average;
+
+
 	float tmp_precipitation, tmp_distance, tmp_air_quality, tmp_fine_dust;
 
 	//for (int i = 0; i < sizeof(dummy_precipitaion)/sizeof(dummy_precipitaion[0]); i++){
@@ -52,21 +95,22 @@ void* thread_func1(void* arg) {
 
 		//강우량 데이터 수집
 		//tmp_precipitation = dummy_precipitaion[i];
-		tmp_precipitation = read_precipitation();
+		tmp_precipitation = precipitation_filter.filtering(&precipitation_filter, read_precipitation());
 		usleep(SENSOR_M_DLY * 1000);
 
 		//거리 데이터 수집
 		//tmp_distance = dummy_distance[i];
-		//usleep(SENSOR_M_DLY * 1000);
+		tmp_distance = distance_filter.filtering(&distance_filter, read_distance());
+		usleep(SENSOR_M_DLY * 1000);
 
 		//공기질 데이터 수집
 		//tmp_air_quality = dummy_air_quality[i];
-		tmp_air_quality = read_air_quality();
+		tmp_air_quality = air_quality_filter.filtering(&air_quality_filter, read_air_quality());
 		usleep(SENSOR_M_DLY * 1000);
 
 		//미세먼지 데이터 수집
 		//tmp_fine_dust = dummy_fine_dust[i];
-		tmp_fine_dust = read_fine_dust();
+		tmp_fine_dust = fine_dust_filter.filtering(&fine_dust_filter, read_fine_dust());
 		usleep(SENSOR_M_DLY * 1000);
 
 
@@ -90,11 +134,20 @@ void* thread_func1(void* arg) {
     return NULL;
 }
 
+#define DURATION 5
+
 // 판단 및 제어 쓰레드
 void* thread_func2(void* arg) {
 
 	float cur_precipitation, cur_distance, cur_air_quality, cur_fine_dust;
 	int outer_condition_bad = 0;
+
+	int start_time1 = 0, end_time1 = 0;
+	int start_time2 = 0, end_time2 = 0;
+	int start_time3 = 0, end_time3 = 0;
+
+	
+
 
 
 	while(1){
@@ -116,12 +169,26 @@ void* thread_func2(void* arg) {
 			if (cur_vent_state == OPEN_COMPLETELY){
 				vent_lock = 0; //락에 상관없이 긴급 정지
 				//환기중지
-				stop_ventilate();
+
+				if (start_time1 == 0){
+					start_time1 = time(NULL);
+				}
+				else{
+					end_time1 = time(NULL);
+					if (end_time1 - start_time1 >= DURATION){
+						stop_ventilate();
+						start_time1 = 0;
+						end_time1 = 0;
+					}
+				}
+				
 			}
 			
 			//idle
 			continue;
 		}
+
+		start_time1 = end_time1 = 0;
 
 
 		/*여기까지 왔다는 건 외부환경이 환기해도 괜찮은 조건*/
@@ -132,11 +199,24 @@ void* thread_func2(void* arg) {
 			//내부 이산화탄소 농도 높음
 			if (cur_vent_state == CLOSED_COMPLETELY){
 				//환기 시작
-				start_ventilate(); // 
+
+				if (start_time2 == 0){
+					start_time2 = time(NULL);
+				}
+				else{
+					end_time2 = time(NULL);
+					if (end_time2 - start_time2 >= DURATION){
+						start_ventilate();
+						start_time2 = 0;
+						end_time2 = 0;
+					}
+				}
 			}
 
 			continue;
 		}
+
+		start_time2 = end_time2 = 0;
 
 
 		/*내부 이산화탄소 농도 낮음*/
@@ -144,7 +224,19 @@ void* thread_func2(void* arg) {
 
 		if (cur_vent_state == OPEN_COMPLETELY && !vent_lock){
 			//환기 중지
-			stop_ventilate();
+
+			if (start_time3 == 0){
+				start_time3 = time(NULL);
+			}
+			else{
+				end_time3 = time(NULL);
+
+				if ( end_time3 - start_time3 >= DURATION){
+					stop_ventilate();
+					start_time3 = 0;
+					end_time3 = 0;
+				}
+			}
 		}
 	}
     return NULL;
@@ -162,9 +254,9 @@ int is_outer_condition_bad(float cur_precipitation, float cur_distance, float cu
 		}
 
 		//터널인가?
-/*		else if (cur_distance <= DISTANCE_THRESHOLD){
+		else if (cur_distance <= DISTANCE_THRESHOLD){
 			condition_bad = 1;
-		}*/
+		}
 
 		//외부 미세먼지 농도가 높은가?
 		else if (cur_fine_dust >= FINE_DUST_THRESHOLD){
@@ -193,6 +285,8 @@ void init_ventilate_timer(){
 }
 
 
+
+
 void set_ventilate_timer(int sec){
 
 	// 타이머 간격 및 초기 시간 설정
@@ -219,7 +313,7 @@ int read_precipitation(){
 }
 
 int read_distance(){
-
+	return get_distance();
 }
 
 int read_fine_dust(){
@@ -241,6 +335,7 @@ int main() {
 
 	init_i2c();
 	motor_gpio_init();
+	ultra_gpio_init();
 
 	cur_vent_state = CLOSED_COMPLETELY;
 

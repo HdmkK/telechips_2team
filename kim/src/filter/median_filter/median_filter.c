@@ -65,7 +65,7 @@ float median_filter(FILTER *filter, float new_value) {
 
 
 
-int main() {
+/*int main() {
     // 예제 데이터 (노이즈가 있는 시계열 데이터)
     float sensor_data[20] = {50, 52, 51, 53, 200, 54, 55, 57, 59, 60, 65, 70, 80, 85, 90, 150, 100, 95, 94, 93};
 
@@ -96,4 +96,4 @@ int main() {
 
 
     return 0;
-}
+}*/
