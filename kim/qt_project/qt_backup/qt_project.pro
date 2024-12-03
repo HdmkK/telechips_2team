@@ -6,5 +6,5 @@
 QT += core gui widgets network
 CONFIG += c++11
 SOURCES += main.cpp
-HEADERS += main.h
+HEADERS += 
 FORMS +=

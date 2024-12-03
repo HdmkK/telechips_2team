@@ -1,5 +1,6 @@
 # 컴파일러 및 플래그 설정
 CC = aarch64-linux-gnu-gcc
+#CC = gcc
 CFLAGS = -Wall -I/home/vboxuser/teamproject/kim/include -g
 
 # 디렉터리 설정

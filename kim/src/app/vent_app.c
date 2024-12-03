@@ -3,6 +3,10 @@
 #include "filter.h"
 #include "motor.h"
 #include "ultra.h"
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
+
 
 
 
@@ -175,7 +179,7 @@ void* thread_func2(void* arg) {
 		cur_air_quality = sensor_data.air_quality;
 		cur_fine_dust = sensor_data.fine_dust;
 
-		printf("강우량 : %f, %f, 거리 : %fcm, 공기질 : %f, 미세먼지 : %f\n", cur_precipitation, cur_precipitation2,  cur_distance, cur_air_quality, cur_fine_dust);
+		//printf("강우량 : %f, %f, 거리 : %fcm, 공기질 : %f, 미세먼지 : %f\n", cur_precipitation, cur_precipitation2,  cur_distance, cur_air_quality, cur_fine_dust);
 
 
 		//외부 환경 check
@@ -258,6 +262,73 @@ void* thread_func2(void* arg) {
 		}
 	}
     return NULL;
+}
+
+#define SERVER_IP "127.0.0.1"
+#define SERVER_PORT 8081
+#define SEND_INTERVAL 1
+
+void* thread_func3(void* arg){
+
+
+	int sock;
+    struct sockaddr_in server_addr;
+
+    // 소켓 생성
+    if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+        perror("Socket creation error");
+        return EXIT_FAILURE;
+    }
+
+    // 서버 주소 설정
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(SERVER_PORT);
+
+    if (inet_pton(AF_INET, SERVER_IP, &server_addr.sin_addr) <= 0) {
+        perror("Invalid address or address not supported");
+        close(sock);
+        return EXIT_FAILURE;
+    }
+
+    // 서버에 연결
+    if (connect(sock, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
+        perror("Connection to the server failed");
+        close(sock);
+        return EXIT_FAILURE;
+    }
+
+    printf("Connected to server %s:%d\n", SERVER_IP, SERVER_PORT);
+
+    // VentDTO 데이터를 주기적으로 전송
+    struct VentDTO vent_data = {0};
+    while (1) {
+        // 예제 데이터 업데이트
+/*        vent_data.raining = rand() % 255;
+        vent_data.in_tunnel = rand() % 255;
+        vent_data.air_condition = rand() % 255;
+        vent_data.fine_dust = rand() % 255;*/
+
+        vent_data.raining = sensor_data.precipitation;
+        vent_data.in_tunnel = sensor_data.distance;
+        vent_data.air_condition = sensor_data.air_quality;
+        vent_data.fine_dust = sensor_data.fine_dust;
+
+        // 데이터 전송
+        ssize_t bytes_sent = send(sock, &vent_data, sizeof(vent_data), 0);
+        if (bytes_sent < 0) {
+            perror("Failed to send data");
+            break;
+        }
+        printf("Sent data: raining=%d, in_tunnel=%d, air_condition=%d, fine_dust=%d\n",
+               vent_data.raining, vent_data.in_tunnel, vent_data.air_condition, vent_data.fine_dust);
+
+        // 주기적으로 전송
+        sleep(SEND_INTERVAL);
+    }
+
+    // 소켓 닫기
+    close(sock);
+    return EXIT_SUCCESS;
 }
 
 
@@ -365,7 +436,7 @@ int main() {
 
 	cur_vent_state = CLOSED_COMPLETELY;
 
-    pthread_t thread1, thread2;
+    pthread_t thread1, thread2, thread3;
 
     init_ventilate_timer();
 
@@ -383,6 +454,11 @@ int main() {
         return EXIT_FAILURE;
     }
 
+    if (pthread_create(&thread3, NULL, thread_func3, NULL) != 0) {
+        perror("Failed to create thread3");
+        return EXIT_FAILURE;
+    }
+
 
     // 스레드 1 종료 대기
     if (pthread_join(thread1, NULL) != 0) {
@@ -393,6 +469,11 @@ int main() {
     // 스레드 2 종료 대기
     if (pthread_join(thread2, NULL) != 0) {
         perror("Failed to join thread2");
+        return EXIT_FAILURE;
+    }
+
+    if (pthread_join(thread3, NULL) != 0) {
+        perror("Failed to join thread3");
         return EXIT_FAILURE;
     }
 

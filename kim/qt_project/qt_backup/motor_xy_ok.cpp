@@ -15,9 +15,6 @@ int motor_speed = 0;
 int raining = 0;
 int in_tunnel = 0;
 int air_condition = 0;
-int fine_dust = 0;
-const int RAINING_THRESHOLD = 100; // RAINING_THRESHOLD 값 정의
-const int AIR_CONDITION_THRESHOLD = 50; // AIR_CONDITION_THRESHOLD 값 정의
 QMutex mutex;
 
 // Struct for vent data
@@ -25,7 +22,6 @@ struct VentDTO {
     int raining;
     int in_tunnel;
     int air_condition;
-    int fine_dust;
 };
 
 // MotorSpeedReceiveThread 클래스
@@ -99,22 +95,17 @@ public:
                             VentDTO ventData;
                             memcpy(&ventData, data.data(), sizeof(VentDTO));
 
-                            //데이터 받는 부분
                             if (ventData.raining >= 0 && ventData.raining <= 255 &&
                                 ventData.in_tunnel >= 0 && ventData.in_tunnel <= 255 &&
-                                ventData.air_condition >= 0 && ventData.air_condition <= 255 &&
-                                ventData.fine_dust >= 0 && ventData.fine_dust <= 255) {
+                                ventData.air_condition >= 0 && ventData.air_condition <= 255) {
                                 QMutexLocker locker(&mutex);
                                 raining = ventData.raining;
                                 in_tunnel = ventData.in_tunnel;
                                 air_condition = ventData.air_condition;
-                                fine_dust = (ventData.fine_dust - 20) * 2;
-                                fine_dust = (fine_dust < 0) ? 0 : fine_dust;
 
                                 qDebug() << "Received vent data: Raining:" << raining
                                          << "In Tunnel:" << in_tunnel
-                                         << "Air Condition:" << air_condition
-                                         << "Fine Dust:" << fine_dust;
+                                         << "Air Condition:" << air_condition;
                             } else {
                                 qDebug() << "Invalid vent data received.";
                             }
@@ -132,99 +123,6 @@ public:
     }
 };
 
-// GreenBallImageThread 클래스
-class GreenBallImageThread : public QThread {
-    Q_OBJECT
-
-private:
-    QLabel *greenBallLabel;
-
-public:
-    explicit GreenBallImageThread(QLabel *label) : greenBallLabel(label) {}
-
-    void run() override {
-        while (true) {
-            QMutexLocker locker(&mutex);
-            int air = air_condition;
-            locker.unlock();
-
-            QMetaObject::invokeMethod(greenBallLabel, [=]() {
-                if (air >= AIR_CONDITION_THRESHOLD) {
-                    greenBallLabel->setVisible(true);
-                    greenBallLabel->raise(); // 이미지를 다른 요소들 위로 표시
-                    greenBallLabel->update(); // 강제로 업데이트
-                } else {
-                    greenBallLabel->setVisible(false);
-                }
-            });
-
-            QThread::msleep(500); // 0.5초마다 갱신
-        }
-    }
-};
-
-// RedBallImageThread 클래스
-class RedBallImageThread : public QThread {
-    Q_OBJECT
-
-private:
-    QLabel *redBallLabel;
-
-public:
-    explicit RedBallImageThread(QLabel *label) : redBallLabel(label) {}
-
-    void run() override {
-        while (true) {
-            QMutexLocker locker(&mutex);
-            int tunnel = in_tunnel;
-            locker.unlock();
-
-            QMetaObject::invokeMethod(redBallLabel, [=]() {
-                if (tunnel <= 50) {
-                    redBallLabel->setVisible(true);
-                    redBallLabel->raise(); // 이미지를 다른 요소들 위로 표시
-                    redBallLabel->update(); // 강제로 업데이트
-                } else {
-                    redBallLabel->setVisible(false);
-                }
-            });
-
-            QThread::msleep(500); // 0.5초마다 갱신
-        }
-    }
-};
-
-// BlueBallImageThread 클래스
-class BlueBallImageThread : public QThread {
-    Q_OBJECT
-
-private:
-    QLabel *blueBallLabel;
-
-public:
-    explicit BlueBallImageThread(QLabel *label) : blueBallLabel(label) {}
-
-    void run() override {
-        while (true) {
-            QMutexLocker locker(&mutex);
-            int rain = raining;
-            locker.unlock();
-
-            QMetaObject::invokeMethod(blueBallLabel, [=]() {
-                if (rain <= RAINING_THRESHOLD) {
-                    blueBallLabel->setVisible(true);
-                    blueBallLabel->raise(); // 이미지를 다른 요소들 위로 표시
-                    blueBallLabel->update(); // 강제로 업데이트
-                } else {
-                    blueBallLabel->setVisible(false);
-                }
-            });
-
-            QThread::msleep(500); // 0.5초마다 갱신
-        }
-    }
-};
-
 // ShowValueThread 클래스
 class ShowValueThread : public QThread {
     Q_OBJECT
@@ -234,11 +132,10 @@ private:
     QLabel *rainingLabel;
     QLabel *inTunnelLabel;
     QLabel *airConditionLabel;
-    QLabel *fineDustLabel;
 
 public:
-    explicit ShowValueThread(QLabel *motorLabel, QLabel *rainLabel, QLabel *tunnelLabel, QLabel *airLabel, QLabel *dustLabel)
-        : motorSpeedLabel(motorLabel), rainingLabel(rainLabel), inTunnelLabel(tunnelLabel), airConditionLabel(airLabel), fineDustLabel(dustLabel) {}
+    explicit ShowValueThread(QLabel *motorLabel, QLabel *rainLabel, QLabel *tunnelLabel, QLabel *airLabel)
+        : motorSpeedLabel(motorLabel), rainingLabel(rainLabel), inTunnelLabel(tunnelLabel), airConditionLabel(airLabel) {}
 
     void run() override {
         while (true) {
@@ -247,7 +144,6 @@ public:
             int rain = raining;
             int tunnel = in_tunnel;
             int air = air_condition;
-            int dust = fine_dust;
             locker.unlock();
 
             QMetaObject::invokeMethod(motorSpeedLabel, [=]() {
@@ -262,10 +158,6 @@ public:
             });
             QMetaObject::invokeMethod(airConditionLabel, [=]() {
                 airConditionLabel->setText(QString("Air Condition: %1").arg(air));
-            });
-            QMetaObject::invokeMethod(fineDustLabel, [=]() {
-                fineDustLabel->setText(QString("%1 µg/m³").arg(dust));
-                fineDustLabel->setAlignment(Qt::AlignRight | Qt::AlignVCenter); // 오른쪽 정렬 설정
             });
 
             QThread::msleep(500); // 0.5초마다 갱신
@@ -313,51 +205,7 @@ public:
         airConditionLabel->setStyleSheet("color: white; font-size: 16px; background: transparent;");
         airConditionFontSize = 16;
 
-        fineDustLabel = new QLabel(this);
-        fineDustLabel->setGeometry(300, 465, 200, 30);
-        fineDustLabel->setStyleSheet("color: white; font-size: 16px; background: transparent;");
-        fineDustFontSize = 16;
-
-        redBallLabel = new QLabel(this);
-        //QString redBallImagePath = "./red_ball.jpg";
-        QString redBallImagePath = "./tunnel.png";
-        if (QFile::exists(redBallImagePath)) {
-            QPixmap redBallPixmap(redBallImagePath);
-            redBallLabel->setPixmap(redBallPixmap);
-            redBallLabel->setScaledContents(true); // 이미지 크기 조정 설정
-            redBallLabel->setGeometry(375, 280, 50, 50);
-            redBallLabel->setVisible(false);
-        } else {
-            qDebug() << "Red ball image not found at:" << redBallImagePath;
-        }
-
-        blueBallLabel = new QLabel(this);
-        //QString blueBallImagePath = "./blue_ball.jpg";
-        QString blueBallImagePath = "./rain.png";
-        if (QFile::exists(blueBallImagePath)) {
-            QPixmap blueBallPixmap(blueBallImagePath);
-            blueBallLabel->setPixmap(blueBallPixmap);
-            blueBallLabel->setScaledContents(true); // 이미지 크기 조정 설정
-            blueBallLabel->setGeometry(290, 80, 50, 50);
-            blueBallLabel->setVisible(false);
-        } else {
-            qDebug() << "Blue ball image not found at:" << blueBallImagePath;
-        }
-
-        greenBallLabel = new QLabel(this);
-        //QString greenBallImagePath = "./green_ball.jpg";
-        QString greenBallImagePath = "./co2.png";
-        if (QFile::exists(greenBallImagePath)) {
-            QPixmap greenBallPixmap(greenBallImagePath);
-            greenBallLabel->setPixmap(greenBallPixmap);
-            greenBallLabel->setScaledContents(true); // 이미지 크기 조정 설정
-            greenBallLabel->setGeometry(470, 80, 50, 50);
-            greenBallLabel->setVisible(false);
-        } else {
-            qDebug() << "Green ball image not found at:" << greenBallImagePath;
-        }
-
-        initialSizes = {motorSpeedLabel->geometry(), rainingLabel->geometry(), inTunnelLabel->geometry(), airConditionLabel->geometry(), fineDustLabel->geometry(), redBallLabel->geometry(), blueBallLabel->geometry(), greenBallLabel->geometry()};
+        initialSizes = {motorSpeedLabel->geometry(), rainingLabel->geometry(), inTunnelLabel->geometry(), airConditionLabel->geometry()};
 
         motorSpeedReceiveThread = new MotorSpeedReceiveThread();
         motorSpeedReceiveThread->start();
@@ -365,17 +213,8 @@ public:
         ventDataReceiveThread = new VentDataReceiveThread();
         ventDataReceiveThread->start();
 
-        showValueThread = new ShowValueThread(motorSpeedLabel, rainingLabel, inTunnelLabel, airConditionLabel, fineDustLabel);
+        showValueThread = new ShowValueThread(motorSpeedLabel, rainingLabel, inTunnelLabel, airConditionLabel);
         showValueThread->start();
-
-        redBallImageThread = new RedBallImageThread(redBallLabel);
-        redBallImageThread->start();
-
-        blueBallImageThread = new BlueBallImageThread(blueBallLabel);
-        blueBallImageThread->start();
-
-        greenBallImageThread = new GreenBallImageThread(greenBallLabel);
-        greenBallImageThread->start();
 
         setCentralWidget(backgroundLabel);
 
@@ -393,15 +232,6 @@ public:
 
         showValueThread->terminate();
         showValueThread->wait();
-
-        redBallImageThread->terminate();
-        redBallImageThread->wait();
-
-        blueBallImageThread->terminate();
-        blueBallImageThread->wait();
-
-        greenBallImageThread->terminate();
-        greenBallImageThread->wait();
     }
 
 protected:
@@ -418,7 +248,6 @@ protected:
             isFullScreenMode = !isFullScreenMode;
             updateScaledImage();
             adjustLabelPositions(); // 전체화면 상태에 따라 텍스트 위치와 크기 조정
-            adjustBallSizes(); // 전체화면 상태에 따라 이미지 크기 조정
         }
         QMainWindow::keyPressEvent(event);
     }
@@ -426,7 +255,6 @@ protected:
     void resizeEvent(QResizeEvent *event) override {
         updateScaledImage();
         adjustLabelPositions(); // 창 크기 변경 시 텍스트 위치와 크기 조정
-        adjustBallSizes(); // 창 크기 변경 시 이미지 크기 조정
         QMainWindow::resizeEvent(event);
     }
 
@@ -436,22 +264,15 @@ private:
     QLabel *rainingLabel;
     QLabel *inTunnelLabel;
     QLabel *airConditionLabel;
-    QLabel *fineDustLabel;
-    QLabel *redBallLabel;
-    QLabel *blueBallLabel;
-    QLabel *greenBallLabel;
     QPixmap originalPixmap;
     QSize defaultSize;
     bool isFullScreenMode;
     QList<QRect> initialSizes;
-    int motorSpeedFontSize, rainingFontSize, inTunnelFontSize, airConditionFontSize, fineDustFontSize;
+    int motorSpeedFontSize, rainingFontSize, inTunnelFontSize, airConditionFontSize;
 
     MotorSpeedReceiveThread *motorSpeedReceiveThread;
     VentDataReceiveThread *ventDataReceiveThread;
     ShowValueThread *showValueThread;
-    RedBallImageThread *redBallImageThread;
-    BlueBallImageThread *blueBallImageThread;
-    GreenBallImageThread *greenBallImageThread;
 
     void updateScaledImage() {
         if (!originalPixmap.isNull()) {
@@ -462,7 +283,7 @@ private:
     }
 
     void adjustLabelPositions() {
-        for (int i = 0; i < initialSizes.size() - 3; ++i) { // 마지막 3개는 Ball 이미지
+        for (int i = 0; i < initialSizes.size(); ++i) {
             QRect initial = initialSizes[i];
             QLabel *label = nullptr;
             int fontSize = 0;
@@ -479,9 +300,6 @@ private:
             } else if (i == 3) {
                 label = airConditionLabel;
                 fontSize = airConditionFontSize;
-            } else if (i == 4) {
-                label = fineDustLabel;
-                fontSize = fineDustFontSize;
             }
 
             if (label) {
@@ -495,31 +313,6 @@ private:
 
                 int adjustedFontSize = fontSize * width() / defaultSize.width();
                 label->setStyleSheet(QString("color: white; font-size: %1px; background: transparent;").arg(adjustedFontSize));
-            }
-        }
-    }
-
-    void adjustBallSizes() {
-        for (int i = initialSizes.size() - 3; i < initialSizes.size(); ++i) { // 마지막 3개는 Ball 이미지
-            QRect initial = initialSizes[i];
-            QLabel *label = nullptr;
-
-            if (i == initialSizes.size() - 3) {
-                label = redBallLabel;
-            } else if (i == initialSizes.size() - 2) {
-                label = blueBallLabel;
-            } else if (i == initialSizes.size() - 1) {
-                label = greenBallLabel;
-            }
-
-            if (label) {
-                QRect adjusted = QRect(
-                    initial.x() * width() / defaultSize.width(),
-                    initial.y() * height() / defaultSize.height(),
-                    initial.width() * width() / defaultSize.width(),
-                    initial.height() * height() / defaultSize.height()
-                );
-                label->setGeometry(adjusted);
             }
         }
     }

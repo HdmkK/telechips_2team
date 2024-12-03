@@ -9,6 +9,7 @@
 #include <time.h>
 
 
+
 #define SENSOR_M_DLY 100
 
 #define TIME_KEEP_VENTILATE 20
@@ -27,6 +28,15 @@ typedef struct sensor_data{
 	float air_quality;
 	float fine_dust;
 }SENSOR_DATA;
+
+
+struct VentDTO {
+    int raining;
+    int in_tunnel;
+    int air_condition;
+    int fine_dust;
+};
+
 
 
 typedef struct timer_struct{
