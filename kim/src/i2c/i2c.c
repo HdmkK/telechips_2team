@@ -6,7 +6,7 @@
 #include "gpio.h"
 
 
-int i2cfile,ret48,ret49,ret4A;
+int i2cfile,ret48,ret49,ret4A,ret4B;
 FILE *valueFile;
 
 

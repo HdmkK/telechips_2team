@@ -43,6 +43,7 @@ void* thread_func1(void* arg) {
 
 
 	FILTER precipitation_filter;
+	FILTER precipitation_filter1;
 	FILTER distance_filter;
 	FILTER air_quality_filter;
 	FILTER fine_dust_filter;
@@ -53,6 +54,14 @@ void* thread_func1(void* arg) {
 	    .count = 0,
 	    .sum = 0,
 	};
+
+	struct mv_avg_queue queue_for_precipitation1 = {
+	    .head = 0,
+	    .tail = 0,
+	    .count = 0,
+	    .sum = 0,
+	};
+
 
 	struct mv_avg_queue queue_for_distance = {
 	    .head = 0,
@@ -78,6 +87,10 @@ void* thread_func1(void* arg) {
 	precipitation_filter.data = &queue_for_precipitation;
 	precipitation_filter.filtering = moving_average;
 
+	precipitation_filter1.data = &queue_for_precipitation1;
+	precipitation_filter1.filtering = moving_average;
+
+
 	distance_filter.data = &queue_for_distance;
 	distance_filter.filtering = moving_average;
 
@@ -88,7 +101,7 @@ void* thread_func1(void* arg) {
 	fine_dust_filter.filtering = moving_average;
 
 
-	float tmp_precipitation, tmp_distance, tmp_air_quality, tmp_fine_dust;
+	float tmp_precipitation, tmp_precipitation2, tmp_distance, tmp_air_quality, tmp_fine_dust;
 
 	//for (int i = 0; i < sizeof(dummy_precipitaion)/sizeof(dummy_precipitaion[0]); i++){
 	while(1){
@@ -96,6 +109,9 @@ void* thread_func1(void* arg) {
 		//강우량 데이터 수집
 		//tmp_precipitation = dummy_precipitaion[i];
 		tmp_precipitation = precipitation_filter.filtering(&precipitation_filter, read_precipitation());
+		usleep(SENSOR_M_DLY * 1000);
+
+		tmp_precipitation2 = precipitation_filter1.filtering(&precipitation_filter1, read_precipitation2());
 		usleep(SENSOR_M_DLY * 1000);
 
 		//거리 데이터 수집
@@ -122,6 +138,7 @@ void* thread_func1(void* arg) {
 		//전역변수 업데이트
 		pthread_mutex_lock(&mutex);
 
+		sensor_data.precipitation2 = tmp_precipitation2;
 		sensor_data.precipitation = tmp_precipitation;
 		sensor_data.distance = tmp_distance;
 		sensor_data.air_quality = tmp_air_quality;
@@ -134,12 +151,12 @@ void* thread_func1(void* arg) {
     return NULL;
 }
 
-#define DURATION 5
+#define DURATION 1
 
 // 판단 및 제어 쓰레드
 void* thread_func2(void* arg) {
 
-	float cur_precipitation, cur_distance, cur_air_quality, cur_fine_dust;
+	float cur_precipitation, cur_precipitation2, cur_distance, cur_air_quality, cur_fine_dust;
 	int outer_condition_bad = 0;
 
 	int start_time1 = 0, end_time1 = 0;
@@ -153,15 +170,16 @@ void* thread_func2(void* arg) {
 	while(1){
 
 		cur_precipitation = sensor_data.precipitation;
+		cur_precipitation2 = sensor_data.precipitation2;
 		cur_distance = sensor_data.distance;
 		cur_air_quality = sensor_data.air_quality;
 		cur_fine_dust = sensor_data.fine_dust;
 
-		printf("강우량 : %f, 거리 : %fcm, 공기질 : %f, 미세먼지 : %f\n", cur_precipitation, cur_distance, cur_air_quality, cur_fine_dust);
+		printf("강우량 : %f, %f, 거리 : %fcm, 공기질 : %f, 미세먼지 : %f\n", cur_precipitation, cur_precipitation2,  cur_distance, cur_air_quality, cur_fine_dust);
 
 
 		//외부 환경 check
-		outer_condition_bad = is_outer_condition_bad(cur_precipitation, cur_distance, cur_fine_dust);
+		outer_condition_bad = is_outer_condition_bad(cur_precipitation, cur_precipitation2, cur_distance, cur_fine_dust);
 
 		//외부 환경 안좋음
 		if (outer_condition_bad){
@@ -244,12 +262,12 @@ void* thread_func2(void* arg) {
 
 
 	
-int is_outer_condition_bad(float cur_precipitation, float cur_distance, float cur_fine_dust){
+int is_outer_condition_bad(float cur_precipitation, float cur_precipitation2, float cur_distance, float cur_fine_dust){
 
 		int condition_bad = 0;
 
 		//비가 오는가?
-		if (cur_precipitation <= PRECIPITATION_THRESHOLD){
+		if ((cur_precipitation <= PRECIPITATION_THRESHOLD) && (cur_precipitation2 <= PRECIPITATION_THRESHOLD)){
 			condition_bad = 1;
 		}
 
@@ -310,6 +328,14 @@ int read_precipitation(){
     ret49 = get_data_from_addr(i2cfile,I2C_ADDR2);
     //usleep(100*1000);
     return ret49;
+}
+
+//commit yang
+int read_precipitation2(){
+	ret4B = 0;
+	ret4B = get_data_from_addr(i2cfile,I2C_ADDR4);
+	//usleep(100*1000);
+	return ret4B;
 }
 
 int read_distance(){

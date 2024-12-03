@@ -14,13 +14,14 @@
 #define TIME_KEEP_VENTILATE 20
 
 
-#define PRECIPITATION_THRESHOLD 100
+#define PRECIPITATION_THRESHOLD 130
 #define DISTANCE_THRESHOLD 10
 #define AIR_QUALITY_THRESHOLD 100
 #define FINE_DUST_THRESHOLD 100
 
 
 typedef struct sensor_data{
+	float precipitation2;
 	float precipitation;
 	float distance;
 	float air_quality;
@@ -44,12 +45,13 @@ typedef enum vent_state{
 void timer_handler(int signum);
 void* thread_func1(void* arg);
 void* thread_func2(void* arg);
-int is_outer_condition_bad(float cur_precipitation, float cur_distance, float cur_particulate_matter);
+int is_outer_condition_bad(float cur_precipitation, float cur_precipitation2, float cur_distance, float cur_particulate_matter);
 void init_ventilate_timer();
 void set_ventilate_timer(int sec);
 int init_i2c();
 int destory_i2c();
 
+int read_precipitation2();
 int read_precipitation();
 int read_air_quality();
 int read_distance();
@@ -72,5 +74,5 @@ pthread_mutex_t mutex;
 #endif
 
 
-extern int i2cfile,ret48,ret49,ret4A;
+extern int i2cfile,ret48,ret49,ret4A,ret4B;
 extern FILE *valueFile;
