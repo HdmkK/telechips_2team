@@ -116,7 +116,7 @@ void* task2() {
         // 수신된 데이터를 널 문자로 종료
         receive_data[total_bytes_read] = '\0';
         if (total_bytes_read > 0) {
-            printf("T2.receive: %s\n", receive_data);
+            printf("T2.receive: %s\n", receive_data); // 이거를 소켓 통신으로 qt에 보내면 된다.
         }
 
 	usleep(200*1000);

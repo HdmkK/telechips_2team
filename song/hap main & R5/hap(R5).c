@@ -6,7 +6,7 @@
  ****************************************************************************/
 
 #include <hap.h>
-//uint32 value=0;
+float Ultravalue=0;
 
 /****************************************************************
 Ultra func
@@ -32,7 +32,6 @@ uint32 ultrasonic_read_distance() {
      
     while (GPIO_Get(ECHO_PIN) == 0UL){
     timeout_counter++;
-    mcu_printf("hanbin");
     delay_us3(10); 
     if (timeout_counter > 300) {           
 	mcu_printf("Timeout waiting\n");
@@ -69,22 +68,30 @@ void Ultra_Test(void)
     
     
     if (ultra >60 && ultra <= 80) {
-    mcu_printf("1\n");
-    } else if (ultra >40 && ultra <= 60) {
-        mcu_printf("2\n");
-    } else if (ultra > 30 && ultra <= 40) {
-        mcu_printf("3\n");
-    } else if (ultra >20 && ultra <= 30) {
-        mcu_printf("4\n");
-    } else if (ultra > 0 && ultra <= 20) {
-        mcu_printf("5\n");
+    	Ultravalue = 0.9;
     } 
+    else if (ultra >50 && ultra <= 60) {
+        Ultravalue = 0.6;
+    } 
+    else if (ultra > 40 && ultra <= 50) {
+        Ultravalue = 0.4;
+    } 
+    else if (ultra >20 && ultra <= 40) {
+        Ultravalue = 0.2;
+    } 
+    else if (ultra > 0 && ultra <= 20) {
+        Ultravalue = 0;
+    } 
+    else{
+    	Ultravalue = 1;
+    }
+    
+    
+    
 
     SAL_TaskSleep(200);
     }
 }
-
-
 
 
 
@@ -138,8 +145,9 @@ void UartJIN2(void) {
     sint32 receivedValue = atoi((const char *)buffer);     
   
     // 속도 출력 메시지
-    dutyCycle = receivedValue;
-    mcu_printf("Setting PWM duty cycle to: %d%%\n", dutyCycle);
+    dutyCycle = receivedValue * Ultravalue;
+    mcu_printf("Speed %d\n", dutyCycle);
+  
     
     // 4. 듀티 사이클에 따른 모터 제어
     if (dutyCycle != prevDutyCycle) {
