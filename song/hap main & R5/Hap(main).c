@@ -8,12 +8,17 @@
 #include <sys/ioctl.h>
 #include <pthread.h>
 
+#include <sys/socket.h>
+#include <arpa/inet.h>
+
 #define UART_DEVICE "/dev/ttyAMA2"
 #define BAUDRATE B115200
 #define I2C_ADDR 0x48     // 0x48 module i2c
 #define SENSOR_CHANNEL1 0x40 // A0값을 읽기 위해 필요한 cmd값.
 
 int file, uart_fd;
+
+int motor_speed;
 
 // I2C에서 데이터 가져오는 함수
 int get_data_from_addr(int file, int addr) {
@@ -119,6 +124,11 @@ void* task2() {
             printf("T2.receive: %s\n", receive_data); // 이거를 소켓 통신으로 qt에 보내면 된다.
         }
 
+        //motor speed 전역변수 업데이트
+        //motor_speed = receive_data;
+        motor_speed = rand() % 256;
+
+
 	usleep(200*1000);
     }
 
@@ -127,11 +137,66 @@ void* task2() {
     return 0;
 }
 
+#define SERVER_IP "127.0.0.1"
+#define SERVER_PORT 8080
+#define SLEEP_INTERVAL 1
+
+void* task3(void* arg){
+
+    int sock;
+    struct sockaddr_in server_addr;
+    ssize_t result;
+
+    // 소켓 생성
+    sock = socket(AF_INET, SOCK_STREAM, 0);
+    if (sock < 0) {
+        perror("Socket creation failed");
+        exit(EXIT_FAILURE);
+    }
+    printf("Socket created successfully.\n");
+
+    // 서버 주소 설정
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(SERVER_PORT);
+    if (inet_pton(AF_INET, SERVER_IP, &server_addr.sin_addr) <= 0) {
+        perror("Invalid server address");
+        close(sock);
+        exit(EXIT_FAILURE);
+    }
+
+    // 서버에 연결
+    if (connect(sock, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
+        perror("Connection to server failed");
+        close(sock);
+        exit(EXIT_FAILURE);
+    }
+    printf("Connected to server %s:%d\n", SERVER_IP, SERVER_PORT);
+
+    // 데이터 전송 루프
+    while (1) {
+        motor_speed = rand() % 256;
+        // 서버로 motor_speed 값(int 형식) 전송
+        result = send(sock, &motor_speed, sizeof(motor_speed), 0);
+        if (result < 0) {
+            perror("Failed to send data");
+            break;
+        }
+        printf("Sent motor_speed: %d\n", motor_speed);
+
+        // SLEEP_INTERVAL만큼 대기
+        sleep(SLEEP_INTERVAL);
+    }
+
+    // 소켓 닫기
+    close(sock);
+    printf("Connection closed.\n");
+}
+
 
 int main() {
     char* filename = "/dev/i2c-1";
 
-    if ((file = open(filename, O_RDWR)) < 0) {
+/*    if ((file = open(filename, O_RDWR)) < 0) {
         perror("Failed to open the i2c bus");
         return -1;
     }
@@ -140,14 +205,14 @@ int main() {
     if (uart_fd == -1) {
         perror("Failed to open UART device");
         return -1;
-    }
+    }*/
 
-    set_uart(uart_fd);
+    //set_uart(uart_fd);
 
     // 스레드 생성
-    pthread_t thread1, thread2;
+    pthread_t thread1, thread2, thread3;
 
-    if (pthread_create(&thread1, NULL, task1, NULL) != 0) {
+/*    if (pthread_create(&thread1, NULL, task1, NULL) != 0) {
         perror("Failed to create Task 1 thread");
         return -1;
     }
@@ -155,14 +220,20 @@ int main() {
     if (pthread_create(&thread2, NULL, task2, NULL) != 0) {
         perror("Failed to create Task 2 thread");
         return -1;
+    }*/
+
+    if (pthread_create(&thread3, NULL, task3, NULL) != 0) {
+        perror("Failed to create Task 3 thread");
+        return -1;
     }
 
     // 스레드 종료 대기
-    pthread_join(thread1, NULL);
-    pthread_join(thread2, NULL);
+/*    pthread_join(thread1, NULL);
+    pthread_join(thread2, NULL);*/
+    pthread_join(thread3, NULL);
 
-    close(uart_fd);
-    close(file);
+/*    close(uart_fd);
+    close(file);*/
     return 0;
 }
 
