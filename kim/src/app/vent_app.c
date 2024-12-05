@@ -20,7 +20,7 @@ int start_ventilate(){
 	cur_vent_state = BEING_OPEN;
 	vent_lock = 1;
 
-	forward(1, 3000);
+	forward(2, 1200);
 	set_ventilate_timer(TIME_KEEP_VENTILATE);
 	cur_vent_state = OPEN_COMPLETELY;
 }
@@ -33,7 +33,7 @@ int stop_ventilate(){
 	printf("closing....\n");
 
 	cur_vent_state = BEING_CLOSED;
-	backward(1, 3000);
+	backward(2, 1200);
 	cur_vent_state = CLOSED_COMPLETELY;
 }
 
@@ -46,20 +46,20 @@ void timer_handler(int signum){
 void* thread_func1(void* arg) {
 
 
-	FILTER precipitation_filter;
 	FILTER precipitation_filter1;
+	FILTER precipitation_filter2;
 	FILTER distance_filter;
 	FILTER air_quality_filter;
 	FILTER fine_dust_filter;
 
-	struct mv_avg_queue queue_for_precipitation = {
+	struct mv_avg_queue queue_for_precipitation1 = {
 	    .head = 0,
 	    .tail = 0,
 	    .count = 0,
 	    .sum = 0,
 	};
 
-	struct mv_avg_queue queue_for_precipitation1 = {
+	struct mv_avg_queue queue_for_precipitation2 = {
 	    .head = 0,
 	    .tail = 0,
 	    .count = 0,
@@ -87,12 +87,12 @@ void* thread_func1(void* arg) {
 	    .count = 0,
 	    .sum = 0,
 	};
-
-	precipitation_filter.data = &queue_for_precipitation;
-	precipitation_filter.filtering = moving_average;
-
+printf("1\n");
 	precipitation_filter1.data = &queue_for_precipitation1;
 	precipitation_filter1.filtering = moving_average;
+
+	precipitation_filter2.data = &queue_for_precipitation2;
+	precipitation_filter2.filtering = moving_average;
 
 
 	distance_filter.data = &queue_for_distance;
@@ -105,50 +105,41 @@ void* thread_func1(void* arg) {
 	fine_dust_filter.filtering = moving_average;
 
 
-	float tmp_precipitation, tmp_precipitation2, tmp_distance, tmp_air_quality, tmp_fine_dust;
+	float tmp_precipitation1, tmp_precipitation2, tmp_distance, tmp_air_quality, tmp_fine_dust;
+	printf("2\n");
 
-	//for (int i = 0; i < sizeof(dummy_precipitaion)/sizeof(dummy_precipitaion[0]); i++){
 	while(1){
-		//printf("!!\n");
 
+		
 		//강우량 데이터 수집
-		//tmp_precipitation = dummy_precipitaion[i];
-		tmp_precipitation = precipitation_filter.filtering(&precipitation_filter, read_precipitation());
+		tmp_precipitation1 = precipitation_filter1.filtering(&precipitation_filter1, read_precipitation1());
 		usleep(SENSOR_M_DLY * 1000);
 
-//printf("1\n");
-		//printf("end\n");
-
-		tmp_precipitation2 = precipitation_filter1.filtering(&precipitation_filter1, read_precipitation2());
+		tmp_precipitation2 = precipitation_filter2.filtering(&precipitation_filter2, read_precipitation2());
 		usleep(SENSOR_M_DLY * 1000);
-//printf("2\n");
+
 		//거리 데이터 수집
-		//tmp_distance = dummy_distance[i];
-		//tmp_distance = distance_filter.filtering(&distance_filter, read_distance());
-		tmp_distance = read_distance();
+		tmp_distance = distance_filter.filtering(&distance_filter, read_distance());
 		usleep(SENSOR_M_DLY * 1000);
-//printf("3\n");
+
 		//공기질 데이터 수집
-		//tmp_air_quality = dummy_air_quality[i];
 		tmp_air_quality = air_quality_filter.filtering(&air_quality_filter, read_air_quality());
 		usleep(SENSOR_M_DLY * 1000);
-//printf("4\n");
+
 		//미세먼지 데이터 수집
-		//tmp_fine_dust = dummy_fine_dust[i];
 		tmp_fine_dust = fine_dust_filter.filtering(&fine_dust_filter, read_fine_dust());
 		usleep(SENSOR_M_DLY * 1000);
-//printf("5\n");
 
 
 		//필터링
 
-		printf("강우량 : %f, 거리 : %fcm, 공기질 : %f, 미세먼지 : %f\n", tmp_precipitation, tmp_distance, tmp_air_quality, tmp_fine_dust);
+		printf("강우량1 : %f, 강우량2 : %f, 거리 : %fcm, 공기질 : %f, 미세먼지 : %f\n", tmp_precipitation1, tmp_precipitation2, tmp_distance, tmp_air_quality, tmp_fine_dust);
 
 		//전역변수 업데이트
 		pthread_mutex_lock(&mutex);
 
+		sensor_data.precipitation1 = tmp_precipitation1;
 		sensor_data.precipitation2 = tmp_precipitation2;
-		sensor_data.precipitation = tmp_precipitation;
 		sensor_data.distance = tmp_distance;
 		sensor_data.air_quality = tmp_air_quality;
 		sensor_data.fine_dust = tmp_fine_dust;
@@ -165,7 +156,7 @@ void* thread_func1(void* arg) {
 // 판단 및 제어 쓰레드
 void* thread_func2(void* arg) {
 
-	float cur_precipitation, cur_precipitation2, cur_distance, cur_air_quality, cur_fine_dust;
+	float cur_precipitation1, cur_precipitation2, cur_distance, cur_air_quality, cur_fine_dust;
 	int outer_condition_bad = 0;
 
 	int start_time1 = 0, end_time1 = 0;
@@ -179,19 +170,19 @@ void* thread_func2(void* arg) {
 	while(1){
 
 
-		cur_precipitation = sensor_data.precipitation;
+		cur_precipitation1 = sensor_data.precipitation1;
 		cur_precipitation2 = sensor_data.precipitation2;
 		cur_distance = sensor_data.distance;
 		cur_air_quality = sensor_data.air_quality;
 		cur_fine_dust = sensor_data.fine_dust;
 
-		//printf("강우량 : %f, %f, 거리 : %fcm, 공기질 : %f, 미세먼지 : %f\n", cur_precipitation, cur_precipitation2,  cur_distance, cur_air_quality, cur_fine_dust);
+		//printf("강우량 1 : %f, 강우량 2 :%f, 거리 : %fcm, 공기질 : %f, 미세먼지 : %f\n", cur_precipitation1, cur_precipitation2,  cur_distance, cur_air_quality, cur_fine_dust);
 
 
 		//외부 환경 check
-		outer_condition_bad = is_outer_condition_bad(cur_precipitation, cur_precipitation2, cur_distance, cur_fine_dust);
+		outer_condition_bad = is_outer_condition_bad(cur_precipitation1, cur_precipitation2, cur_distance, cur_fine_dust);
 
-		//printf("condition? : %d", outer_condition_bad);
+
 		//외부 환경 안좋음
 		if (outer_condition_bad){
 
@@ -278,7 +269,7 @@ void* thread_func2(void* arg) {
 #define SERVER_PORT 8081
 #define SEND_INTERVAL 1
 
-/*void* thread_func3(void* arg){
+void* thread_func3(void* arg){
 
 
 	int sock;
@@ -318,7 +309,7 @@ void* thread_func2(void* arg) {
         vent_data.air_condition = rand() % 255;
         vent_data.fine_dust = rand() % 255;
 
-        vent_data.raining = sensor_data.precipitation;
+        vent_data.raining = sensor_data.precipitation1;
         vent_data.in_tunnel = sensor_data.distance;
         vent_data.air_condition = sensor_data.air_quality;
         vent_data.fine_dust = sensor_data.fine_dust;
@@ -329,8 +320,8 @@ void* thread_func2(void* arg) {
             perror("Failed to send data");
             break;
         }
-        printf("Sent data: raining=%d, in_tunnel=%d, air_condition=%d, fine_dust=%d\n",
-               vent_data.raining, vent_data.in_tunnel, vent_data.air_condition, vent_data.fine_dust);
+        //printf("Sent data: raining=%d, in_tunnel=%d, air_condition=%d, fine_dust=%d\n",
+               //vent_data.raining, vent_data.in_tunnel, vent_data.air_condition, vent_data.fine_dust);
 
         // 주기적으로 전송
         sleep(SEND_INTERVAL);
@@ -339,16 +330,16 @@ void* thread_func2(void* arg) {
     // 소켓 닫기
     close(sock);
     return EXIT_SUCCESS;
-}*/
+}
 
 
 	
-int is_outer_condition_bad(float cur_precipitation, float cur_precipitation2, float cur_distance, float cur_fine_dust){
+int is_outer_condition_bad(float cur_precipitation1, float cur_precipitation2, float cur_distance, float cur_fine_dust){
 
 		int condition_bad = 0;
 
 		//비가 오는가?
-		if ((cur_precipitation <= PRECIPITATION_THRESHOLD) && (cur_precipitation2 <= PRECIPITATION_THRESHOLD)){
+		if ((cur_precipitation1 <= PRECIPITATION_THRESHOLD) && (cur_precipitation2 <= PRECIPITATION_THRESHOLD)){
 			condition_bad = 1;
 		}
 
@@ -361,6 +352,7 @@ int is_outer_condition_bad(float cur_precipitation, float cur_precipitation2, fl
 		else if (cur_fine_dust >= FINE_DUST_THRESHOLD){
 			condition_bad = 1;
 		}
+		//printf("condition? : %d\n", condition_bad);
 
 		return condition_bad;
 }
@@ -404,7 +396,7 @@ int read_air_quality(){
     return ret48;
 }
 
-int read_precipitation(){
+int read_precipitation1(){
 	ret49 = 0;
     ret49 = get_data_from_addr(i2cfile,I2C_ADDR2);
     //usleep(100*1000);
@@ -448,7 +440,7 @@ int main() {
 
 	cur_vent_state = CLOSED_COMPLETELY;
 
-    pthread_t thread1, thread2;
+    pthread_t thread1, thread2, thread3;
 
     init_ventilate_timer();
 
@@ -466,10 +458,10 @@ int main() {
         return EXIT_FAILURE;
     }
 
-    /*if (pthread_create(&thread3, NULL, thread_func3, NULL) != 0) {
+    if (pthread_create(&thread3, NULL, thread_func3, NULL) != 0) {
         perror("Failed to create thread3");
         return EXIT_FAILURE;
-    }*/
+    }
 
 
     // 스레드 1 종료 대기
@@ -484,10 +476,10 @@ int main() {
         return EXIT_FAILURE;
     }
 
-    /*if (pthread_join(thread3, NULL) != 0) {
+    if (pthread_join(thread3, NULL) != 0) {
         perror("Failed to join thread3");
         return EXIT_FAILURE;
-    }*/
+    }
 
 
 

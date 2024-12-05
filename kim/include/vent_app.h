@@ -16,14 +16,14 @@
 
 
 #define PRECIPITATION_THRESHOLD 130
-#define DISTANCE_THRESHOLD 10
+#define DISTANCE_THRESHOLD 70
 #define AIR_QUALITY_THRESHOLD 100
 #define FINE_DUST_THRESHOLD 170
 
 
 typedef struct sensor_data{
+	float precipitation1;
 	float precipitation2;
-	float precipitation;
 	float distance;
 	float air_quality;
 	float fine_dust;
