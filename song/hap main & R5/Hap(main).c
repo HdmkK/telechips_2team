@@ -196,7 +196,7 @@ void* task3(void* arg){
 int main() {
     char* filename = "/dev/i2c-1";
 
-/*    if ((file = open(filename, O_RDWR)) < 0) {
+    if ((file = open(filename, O_RDWR)) < 0) {
         perror("Failed to open the i2c bus");
         return -1;
     }
@@ -205,14 +205,14 @@ int main() {
     if (uart_fd == -1) {
         perror("Failed to open UART device");
         return -1;
-    }*/
+    }
 
-    //set_uart(uart_fd);
+    set_uart(uart_fd);
 
     // 스레드 생성
     pthread_t thread1, thread2, thread3;
 
-/*    if (pthread_create(&thread1, NULL, task1, NULL) != 0) {
+    if (pthread_create(&thread1, NULL, task1, NULL) != 0) {
         perror("Failed to create Task 1 thread");
         return -1;
     }
@@ -220,7 +220,7 @@ int main() {
     if (pthread_create(&thread2, NULL, task2, NULL) != 0) {
         perror("Failed to create Task 2 thread");
         return -1;
-    }*/
+    }
 
     if (pthread_create(&thread3, NULL, task3, NULL) != 0) {
         perror("Failed to create Task 3 thread");
@@ -228,12 +228,12 @@ int main() {
     }
 
     // 스레드 종료 대기
-/*    pthread_join(thread1, NULL);
-    pthread_join(thread2, NULL);*/
+    pthread_join(thread1, NULL);
+    pthread_join(thread2, NULL);
     pthread_join(thread3, NULL);
 
-/*    close(uart_fd);
-    close(file);*/
+    close(uart_fd);
+    close(file);
     return 0;
 }
 
