@@ -52,6 +52,11 @@ void motor_gpio_init(){
     setGPIODirection(PIN2, "out");
     setGPIODirection(PIN3, "out");
     setGPIODirection(PIN4, "out");
+    setGPIOValue(PIN1, 0);
+    setGPIOValue(PIN2, 0);
+    setGPIOValue(PIN3, 0);
+    setGPIOValue(PIN4, 0);
+
 }
 
 
