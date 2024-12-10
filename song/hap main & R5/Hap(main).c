@@ -126,7 +126,7 @@ void* task2() {
 
         //motor speed 전역변수 업데이트
         //motor_speed = receive_data;
-        motor_speed = rand() % 256;
+        motor_speed = receive_data % 256;
 
 
 	usleep(200*1000);
@@ -174,7 +174,6 @@ void* task3(void* arg){
 
     // 데이터 전송 루프
     while (1) {
-        motor_speed = rand() % 256;
         // 서버로 motor_speed 값(int 형식) 전송
         result = send(sock, &motor_speed, sizeof(motor_speed), 0);
         if (result < 0) {
