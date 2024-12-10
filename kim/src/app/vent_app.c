@@ -20,7 +20,8 @@ int start_ventilate(){
 	cur_vent_state = BEING_OPEN;
 	vent_lock = 1;
 
-	forward(2, 1200);
+	backward(3, 1000);
+	//forward(2, 1200);
 	set_ventilate_timer(TIME_KEEP_VENTILATE);
 	cur_vent_state = OPEN_COMPLETELY;
 }
@@ -33,7 +34,8 @@ int stop_ventilate(){
 	printf("closing....\n");
 
 	cur_vent_state = BEING_CLOSED;
-	backward(2, 1200);
+	//backward(2, 1200);
+	forward(3, 1000);
 	cur_vent_state = CLOSED_COMPLETELY;
 }
 
@@ -47,6 +49,9 @@ void* thread_func1(void* arg) {
 
 
 	FILTER precipitation_filter1;
+
+
+
 	FILTER precipitation_filter2;
 	FILTER distance_filter;
 	FILTER air_quality_filter;
@@ -87,7 +92,7 @@ void* thread_func1(void* arg) {
 	    .count = 0,
 	    .sum = 0,
 	};
-printf("1\n");
+
 	precipitation_filter1.data = &queue_for_precipitation1;
 	precipitation_filter1.filtering = moving_average;
 
@@ -106,13 +111,14 @@ printf("1\n");
 
 
 	float tmp_precipitation1, tmp_precipitation2, tmp_distance, tmp_air_quality, tmp_fine_dust;
-	printf("2\n");
 
 	while(1){
 
 		
 		//강우량 데이터 수집
 		tmp_precipitation1 = precipitation_filter1.filtering(&precipitation_filter1, read_precipitation1());
+
+		
 		usleep(SENSOR_M_DLY * 1000);
 
 		tmp_precipitation2 = precipitation_filter2.filtering(&precipitation_filter2, read_precipitation2());
@@ -265,6 +271,13 @@ void* thread_func2(void* arg) {
     return NULL;
 }
 
+
+int is_raining(float value1, float value2){
+	printf("value1 : %f, value2 : %f\n", value1, value2);
+	return ((value1 <= PRECIPITATION_THRESHOLD) && (value2 <= PRECIPITATION_THRESHOLD)) ? 1 : 0;
+}
+
+
 #define SERVER_IP "127.0.0.1"
 #define SERVER_PORT 8081
 #define SEND_INTERVAL 1
@@ -304,12 +317,10 @@ void* thread_func3(void* arg){
     struct VentDTO vent_data = {0};
     while (1) {
         // 예제 데이터 업데이트
-        vent_data.raining = rand() % 255;
-        vent_data.in_tunnel = rand() % 255;
-        vent_data.air_condition = rand() % 255;
-        vent_data.fine_dust = rand() % 255;
 
-        vent_data.raining = sensor_data.precipitation1;
+        //vent_data.raining = sensor_data.precipitation1;
+        vent_data.raining = is_raining(sensor_data.precipitation1, sensor_data.precipitation2);
+        printf("rain : %d\n", vent_data.raining);
         vent_data.in_tunnel = sensor_data.distance;
         vent_data.air_condition = sensor_data.air_quality;
         vent_data.fine_dust = sensor_data.fine_dust;
@@ -331,6 +342,7 @@ void* thread_func3(void* arg){
     close(sock);
     return EXIT_SUCCESS;
 }
+
 
 
 	
