@@ -55,7 +55,7 @@
 #include <wdt_test.h>
 #include <timer_test.h>
 #ifdef SSM_FEATURE_ISO
-#   include <iso_test.h>
+#include <iso_test.h>
 #endif
 #include <gdma_test.h>
 #include <dse_test.h>
@@ -70,7 +70,7 @@
 #include <fmu_test.h>
 #include <can_demo.h>
 #include <reset_demo.h>
-#include <hap.h>
+#include <Motor_System.h>
 #include <sdm.h>
 #include <pdm.h>
 #include <fwug.h>
@@ -631,136 +631,7 @@ static void CSL_DeviceI2c(uint8 ucArgc, void *pArgv[])
 
 static void CSL_DeviceUart(uint8 ucArgc, void *pArgv[]) {
 
-  #define PWM_CH_0                        (0UL)
-  (void)ucArgc;
-  uint32 dutyCycle = 0;           // PWM 듀티 사이클
-  uint32 prevDutyCycle = 0;       // 이전 듀티 사이클
-  PDMModeConfig_t ModeConfigInfo;
-  PWM_TestMotorGpio();
-  uint32 ultra = 0;
-  
-  
-  
-  // PWM 초기 설정
-  ModeConfigInfo.mcPortNumber = 64UL;
-  ModeConfigInfo.mcOperationMode = PDM_OUTPUT_MODE_PHASE_1;
-  ModeConfigInfo.mcClockDivide = 0UL;
-  ModeConfigInfo.mcLoopCount = 0UL;
-  ModeConfigInfo.mcInversedSignal = 0UL;
-  ModeConfigInfo.mcPosition1 = 0UL;
-  ModeConfigInfo.mcPosition2 = 0UL;
-  ModeConfigInfo.mcPosition3 = 0UL;
-  ModeConfigInfo.mcPosition4 = 0UL;
-  ModeConfigInfo.mcOutPattern1 = 0UL;
-  ModeConfigInfo.mcOutPattern2 = 0UL;
-  ModeConfigInfo.mcOutPattern3 = 0UL;
-  ModeConfigInfo.mcOutPattern4 = 0UL;
-  ModeConfigInfo.mcMaxCount = 0UL;
-  
-  GPIO_Config(GPIO_GPG(6), (GPIO_FUNC(0UL) | GPIO_OUTPUT));
-  GPIO_Config(GPIO_GPG(7), (GPIO_FUNC(0UL) | GPIO_INPUT | GPIO_INPUTBUF_EN));  
-  
-  
-  mcu_printf("start Excel\n");
-  mcu_printf("Ultrasonic sensor enabled.\n");
 
-  while (1) {
-    sint32 total_bytes_read = 0;
-    uint8 buffer[BUFFER_SIZE] = {0}; // 버퍼 초기화
-    
-    
-    // 0. 초음파로 들어오는 값 확인 
-    ultra = ultrasonic_read_distance();
-
-
-    // 1. UART로 들어오는 값 확인
-    while (1) {
-            sint32 bytes_read = UART_Read(UART_CH2, &buffer[total_bytes_read], sizeof(buffer) - total_bytes_read-1);
-            if (bytes_read <= 0) {
-                break;
-            }
-            total_bytes_read += bytes_read;
-            if (buffer[total_bytes_read - 1] == '\n' || buffer[total_bytes_read - 1] == '\0') {
-                    break;
-            }
-        } 
-
-    buffer[total_bytes_read] = '\0'; 
-
-
-    // 2. 수신된 값 출력      
-    if (total_bytes_read > 0) {
-      mcu_printf("Received Data: %s\n", buffer);
-    } 
-    
-    // 수신 데이터 숫자로 변환
-    sint32 receivedValue = atoi((const char *)buffer);
-         
-    // 3. 수신된 센서 데이터 값에 따라 듀티사이클 변경      
-    switch (receivedValue) {
-    case 1:
-        dutyCycle = 20; // 20%
-        break;
-    case 2:
-        dutyCycle = 50; // 40%
-        break;
-    case 3:
-        dutyCycle = 60; // 60%
-        break;
-    case 4:
-        dutyCycle = 80; // 80%
-        break;
-    case 5:
-        dutyCycle = 100; // 100%
-        break;
-    default:
-        mcu_printf("Invalid value received: %s\n", buffer);
-        continue; // 유효하지 않은 값은 무시하고 다음 루프로
-    }
-    
-    // 속도 출력 메시지
-    dutyCycle = receivedValue;
-    mcu_printf("WM duty cycle: %d%%\n", dutyCycle);
-    
-    if (ultra >60 && ultra <= 80) {
-
-    } else if (ultra >40 && ultra <= 60) {
-        dutyCycle-=50 ; // 초음파 값 60~40
-    } else if (ultra > 30 && ultra <= 40) {
-        dutyCycle-=70; // 초음파 값 40~30
-    } else if (ultra >20 && ultra <= 30) {
-        dutyCycle-=100 ; // 초음파 값 30~20
-    } else if (ultra > 0 && ultra <= 20) {
-        dutyCycle = 0; // 초음파 값 20~0
-    } 
-    
-    if(dutyCycle<=0){
-         dutyCycle=0;
-        }
-          
-    
-    mcu_printf("ultra setting speed: %d%%\n", dutyCycle);
-    
-    
-    
-    
-    // 4. 듀티 사이클에 따른 모터 제어
-    if (dutyCycle != prevDutyCycle) {
-         if (dutyCycle > 0) {
-              ModeConfigInfo.mcPeriodNanoSec1 = (1000UL * 1000U); // 1ms 주기
-              ModeConfigInfo.mcDutyNanoSec1 = ((dutyCycle * ModeConfigInfo.mcPeriodNanoSec1) / 255UL);
-
-              (void)PDM_SetConfig((uint32)PWM_CH_0, &ModeConfigInfo);
-              (void)PDM_Enable((uint32)PWM_CH_0, PMM_ON);
-            } else {
-              (void)PDM_Disable((uint32)PWM_CH_0, PMM_ON);
-            }
-            prevDutyCycle = dutyCycle; // 이전 값 갱신
-        }
-    SAL_TaskSleep(100);
-    
-  }
-   (void)PDM_Disable((uint32)PWM_CH_0, PMM_ON);
 }
 
 static void CSL_DevicePwm(uint8 ucArgc, void *pArgv[])
@@ -905,7 +776,7 @@ static void CSL_DeviceWdt(uint8 ucArgc, void *pArgv[])
 
 static void CSL_DeviceMpu(uint8 ucArgc, void *pArgv[])
 {
-   UartJIN2();
+
 }
 
 static void CSL_DeviceFmu(uint8 ucArgc, void *pArgv[])

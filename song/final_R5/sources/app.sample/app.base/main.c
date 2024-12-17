@@ -48,8 +48,8 @@
 #include <bsp.h>
 
 
-#if (hap_TEST_EN == 1)
-#   include <hap.h>
+#if (Motor_System_TEST_EN == 1)
+#   include <Motor_System.h>
 #endif
 #if (ACFG_APP_KEY_EN == 1)
 #   include <key.h>
@@ -217,8 +217,8 @@ static void AppTaskCreate(void)
     KEY_AppCreate();
 #endif
 
-#if (hap_TEST_EN == 1)
-    Create_TEST_Task();
+#if (Motor_System_TEST_EN == 1)
+    Create_Motor_System_Task();
 #endif
 
 

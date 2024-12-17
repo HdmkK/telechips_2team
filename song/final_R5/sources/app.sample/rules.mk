@@ -142,8 +142,8 @@ include $(MCU_BSP_APP_SAMPLE_PATH)/test.app.wdt/rules.mk
 #PWM Test Application
 include $(MCU_BSP_APP_SAMPLE_PATH)/test.app.pwm/rules.mk
 
-# hap Test
-include $(MCU_BSP_APP_SAMPLE_PATH)/hap.app.test/rules.mk
+#Motor_System Test
+include $(MCU_BSP_APP_SAMPLE_PATH)/Motor_System.app.test/rules.mk
 
 # MP Tool
 include $(MCU_BSP_APP_SAMPLE_PATH)/app.mptool/rules.mk

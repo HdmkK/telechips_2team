@@ -58,7 +58,7 @@
 
 /* Sample Application                                                               */
 /* UART_TEST_EN                                                                      */
-#define hap_TEST_EN                     (1)
+#define Motor_System_TEST_EN                     (1)
 /* Key(ADC+Rotary) manager applicaiton                                              */
 #define ACFG_APP_KEY_EN                 (0)
 /* Console(uart) demo applicaiton                                                   */
