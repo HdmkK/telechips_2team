@@ -211,7 +211,7 @@ public:
             locker.unlock();
 
             QMetaObject::invokeMethod(blueBallLabel, [=]() {
-                if (rain <= RAINING_THRESHOLD) {
+                if (rain) {
                     blueBallLabel->setVisible(true);
                     blueBallLabel->raise(); // 이미지를 다른 요소들 위로 표시
                     blueBallLabel->update(); // 강제로 업데이트
