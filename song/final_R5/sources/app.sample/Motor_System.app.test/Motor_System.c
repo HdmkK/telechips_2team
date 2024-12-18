@@ -6,6 +6,10 @@
  ****************************************************************************/
 
 #include <Motor_System.h>
+#include "FreeRTOS.h"
+#include "semphr.h"  
+
+extern SemaphoreHandle_t xBinarySemaphore;
 float Ultravalue=0;
 
 /****************************************************************
@@ -54,6 +58,8 @@ uint32 ultrasonic_read_distance() {
 }
 
 // 초음파 센서 메인 동작 
+
+
 void UltraSonic_main(void)
 {
     uint32 ultra = 0;
@@ -64,25 +70,25 @@ void UltraSonic_main(void)
     SAL_TaskSleep(500);
     
     while(1){
-    ultra = ultrasonic_read_distance();
-    
-    if (ultra >65 && ultra <= 80) {
-    	Ultravalue = 0.8; //전역변수 update
-    } 
-    else if (ultra >50 && ultra <= 65) {
-        Ultravalue = 0.5; //전역변수 update
-    } 
-    else if (ultra > 35 && ultra <= 50) {
-        Ultravalue = 0.3; //전역변수 update
-    } 
-    else if (ultra > 0 && ultra <= 35) {
-        Ultravalue = 0;  //전역변수 update
-    } 
-    else{
-    	Ultravalue = 1;  //전역변수 update
-    }
+        if (xSemaphoreTake(xBinarySemaphore, portMAX_DELAY) == pdTRUE) {
+            ultra = ultrasonic_read_distance();
 
-    SAL_TaskSleep(200);
+            if (ultra >65 && ultra <= 80) {
+                Ultravalue = 0.8; //전역변수 update
+            } 
+            else if (ultra >50 && ultra <= 65) {
+                Ultravalue = 0.5; //전역변수 update
+            } 
+            else if (ultra > 35 && ultra <= 50) {
+                Ultravalue = 0.3; //전역변수 update
+            } 
+            else if (ultra > 0 && ultra <= 35) {
+                Ultravalue = 0;  //전역변수 update
+            } 
+            else{
+                Ultravalue = 1;  //전역변수 update
+            }
+        }
     }
 }
 
@@ -184,7 +190,7 @@ void Create_Motor_System_Task(void)
         (SALTaskFunc)&UltraSonic_main,
         &Ultra_main_Stk[0],
         Ultra_main_STK_SIZE,
-        SAL_PRIO_TEST,
+        SAL_PRIO_ULTRA,
         NULL
     );
     (void)SAL_TaskCreate
@@ -194,7 +200,7 @@ void Create_Motor_System_Task(void)
         (SALTaskFunc)&Uart_PWM,
         &UART_PWM_main_Stk[0],
         Uart_PWM_main_STK_SIZE,
-        SAL_PRIO_TEST,
+        SAL_PRIO_MOTOR,
         NULL
     );
     

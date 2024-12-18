@@ -48,8 +48,22 @@
 #include <bsp.h>
 
 
+#include <sal_internal.h>
+#include <debug.h>
+#include <stdint.h>
+#include <timer.h>
+#include <timer_test.h>
+#include "FreeRTOS.h"
+#include "task.h"
+#include <task.h>
+#include <portmacro.h>
+
+#include "timers.h"
+#include "semphr.h"
+
+
 #if (Motor_System_TEST_EN == 1)
-#   include <Motor_System.h>
+#include <Motor_System.h>
 #endif
 #if (ACFG_APP_KEY_EN == 1)
 #   include <key.h>
@@ -88,7 +102,9 @@
 */
 uint32                                  gALiveMsgOnOff;
 static uint32                                  gALiveCount;
-
+TimerHandle_t                           xExampleTimer; // 타이머 핸들
+SemaphoreHandle_t                       xBinarySemaphore; //semaphore
+ 
 /*
 ***************************************************************************************************
 *                                         FUNCTION PROTOTYPES
@@ -110,6 +126,19 @@ static void DisplayAliveLog
     void
 );
 
+void vExampleTimerCallback
+(
+    TimerHandle_t xTimer
+);
+
+void init_timer(
+    void
+);
+
+void init_semaphore(
+    void
+);
+
 /*
 ***************************************************************************************************
 *                                         FUNCTIONS
@@ -126,12 +155,19 @@ static void DisplayAliveLog
 *
 ***************************************************************************************************
 */
+
+
+
 void cmain (void)
 {
     static uint32           AppTaskStartID = 0;
     static uint32           AppTaskStartStk[ACFG_TASK_MEDIUM_STK_SIZE];
     SALRetCode_t            err;
     SALMcuVersionInfo_t     versionInfo = {0,0,0,0};
+
+    
+    //부팅시간 측정 시작
+    //taskCreateTime = xTaskGetTickCount();
 
     (void)SAL_Init();  
 
@@ -158,6 +194,10 @@ void cmain (void)
                          SAL_PRIO_APP_CFG,
                          NULL);
 
+    
+    init_semaphore();
+    init_timer();
+
     if (err == SAL_RET_SUCCESS)
     {
         // start woring os.... never return from this function
@@ -180,6 +220,9 @@ void cmain (void)
 *
 ***************************************************************************************************
 */
+
+
+
 static void Main_StartTask(void * pArg)
 {
     (void)pArg;
@@ -222,7 +265,8 @@ static void AppTaskCreate(void)
 #endif
 
 
-/*
+
+
 #if (ACFG_APP_SYSTEM_MONITORING_EN == 1)
     SM_CreateAppTask();
 #endif
@@ -237,12 +281,58 @@ static void AppTaskCreate(void)
 #if (ACFG_APP_TRVC_EN == 1)
     TRVC_CreateAppTasks();
 #endif
-*/
 
-/*
+
+
 #if (ACFG_APP_MPTOOL_EN == 1)
     MPTool_CreateApp();
-#endif*/
+#endif
+
+
+}
+
+
+void init_timer(void){
+
+    // 타이머 생성
+    xExampleTimer = xTimerCreate(
+        "UltraTimer",             // 타이머 이름
+        pdMS_TO_TICKS(100),        // 0.1초 주기 (밀리초 -> Tick 변환)
+        pdTRUE,                     // 자동 재로드 설정
+        (void *)0,                  // 타이머 ID (사용 안 함)
+        vExampleTimerCallback       // 타이머 만료 시 콜백 함수
+    );
+
+
+    if (xExampleTimer == NULL)
+    {
+        mcu_printf("Failed to create timer.\n");
+    }
+
+    // 타이머 시작
+    if (xTimerStart(xExampleTimer, 0) != pdPASS)
+    {
+        mcu_printf("Failed to start timer.\n");
+    }
+}
+
+void init_semaphore(void){
+    //이진 세마포어 생성
+    xBinarySemaphore = xSemaphoreCreateBinary();
+
+    if (xBinarySemaphore != NULL) {
+        mcu_printf("semaphore create fail\n");
+    }
+}
+
+
+
+// 타이머 콜백 함수
+void vExampleTimerCallback(TimerHandle_t xTimer)
+{
+    // 타이머 실행 시 호출될 작업
+    //mcu_printf("Timer expired! semaphore give.\n");
+    xSemaphoreGive(xBinarySemaphore);
 }
 
 static void DisplayAliveLog(void)

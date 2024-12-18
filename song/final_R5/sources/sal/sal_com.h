@@ -272,8 +272,8 @@ typedef enum SALTaskPriority
     SAL_PRIO_NVM_MAMAGER                = 8,  /**< NVM Manager APP task                 */
     SAL_PRIO_FWUG_APP                   = 10,  /**< FWUG APP task                       */
     SAL_PRIO_LOWEST                     = 12,  /**< APP TASK START task                 */
-    SAL_PRIO_TEST                       = 5,  /**< hab task                           */
-
+    SAL_PRIO_ULTRA                       = 4,  /**< ultrasonic                           */
+    SAL_PRIO_MOTOR                      = 5, /** <Motor */
 
 } SALTaskPriority_t;
 
