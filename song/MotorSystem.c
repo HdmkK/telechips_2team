@@ -20,13 +20,12 @@
 #define SLEEP_INTERVAL 1
 
 
-
 int file, uart_fd;
 
 int motor_speed;
 
 // I2C에서 데이터 가져오는 함수
-int get_data_from_I2C(int file, int addr) {
+int get_data_from_addr(int file, int addr) {
     char buffer[2];
     buffer[0] = SENSOR_CHANNEL1;
     if (ioctl(file, I2C_SLAVE, addr) < 0) {
@@ -61,7 +60,7 @@ void set_uart(int set_fd) {
     tcsetattr(set_fd, TCSANOW, &options);              // 설정 즉시 적용
 }
 
-// 압력센서 데이터 송신 (A72 -> R5)
+// Task 1
 void* thread_Send() {
     int file,sendD;
     char *filename = "/dev/i2c-1";
@@ -82,7 +81,7 @@ void* thread_Send() {
     while (1) {
     	int a = 0;
     	char send_data[4];  // 1바이트 문자 + 널 문자
-        sendD = get_data_from_I2C(file,I2C_ADDR);
+        sendD = get_data_from_addr(file,I2C_ADDR);
 	usleep(200*1000);
         printf("T1.send: %d \n", sendD);
         snprintf(send_data, sizeof(send_data), "%d", sendD);
@@ -91,7 +90,7 @@ void* thread_Send() {
     }
 }
 
-// 속도 수신 후 속도 업데이트 (R5->A72)
+// Task 2
 void* thread_receive_send() {
     char receive_data[10];
     int total_bytes_read;
@@ -134,7 +133,6 @@ void* thread_receive_send() {
     return 0;
 }
 
-//속도 송신(A72 -> A72(타보드))
 void* thread_TCPIP(void* arg){
 
     int sock;
