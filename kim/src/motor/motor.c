@@ -1,10 +1,5 @@
 #include "motor.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <time.h>
-#include "gpio.h"
+
 
 int blue[8] = {1, 1, 0, 0, 0, 0, 0, 1};
 int pink[8] = {0, 1, 1, 1, 0, 0, 0, 0};

@@ -3,6 +3,11 @@
 
 
 #include <stdio.h>
+#include <linux/i2c-dev.h>
+#include <sys/ioctl.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include "gpio.h"
 
 #define I2C_ADDR 0x48     //0x48 module i2c
 #define I2C_ADDR2 0x49    //0x4A module i2c

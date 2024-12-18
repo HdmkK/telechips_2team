@@ -1,8 +1,4 @@
-#include "gpio.h"
 #include "ultra.h"
-#include <sys/time.h>
-#include <stdio.h>
-#include <unistd.h>
 
 
 void ultra_gpio_init(){

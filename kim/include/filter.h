@@ -1,6 +1,8 @@
 #ifndef __FILTER_H__
 #define __FILTER_H__
 
+#include <stdlib.h>
+
 
 #define MAX_QUEUE_SIZE 100
 

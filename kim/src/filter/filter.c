@@ -1,5 +1,5 @@
 #include "filter.h"
-#include <stdlib.h>
+
 
 #define WINDOW_SIZE 5 
 

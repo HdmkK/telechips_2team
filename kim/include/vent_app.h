@@ -8,9 +8,19 @@
 #include <signal.h>
 #include <time.h>
 
+#include "i2c.h"
+#include "filter.h"
+#include "motor.h"
+#include "ultra.h"
+
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
+
 
 
 #define SENSOR_M_DLY 100
+#define DURATION 1 //조건을 일정시간동안 만족할때 창문을 제어하기 위한 용도의 DURATION 상수
 
 #define TIME_KEEP_VENTILATE 20
 
@@ -52,20 +62,20 @@ typedef enum vent_state{
 	BEING_CLOSED
 }VENT_STATE;
 
-void timer_handler(int signum);
-void* thread_func1(void* arg);
-void* thread_func2(void* arg);
-int is_outer_condition_bad(float cur_precipitation, float cur_precipitation2, float cur_distance, float cur_particulate_matter);
-void init_ventilate_timer();
-void set_ventilate_timer(int sec);
+static void timer_handler(int signum);
+static int is_outer_condition_bad(float cur_precipitation, float cur_precipitation2, float cur_distance, float cur_particulate_matter);
+static void init_ventilate_timer();
+static void set_ventilate_timer(int sec);
 int init_i2c();
 int destory_i2c();
 
-int read_precipitation2();
-int read_precipitation();
-int read_air_quality();
-int read_distance();
-int read_fine_dust();
+static int read_precipitation1();
+static int read_precipitation2();
+static int read_air_quality();
+static int read_distance();
+static int read_fine_dust();
+
+
 
 
 

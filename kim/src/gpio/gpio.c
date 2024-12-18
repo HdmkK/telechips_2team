@@ -1,9 +1,5 @@
 #include "gpio.h"
-#include <stdlib.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <linux/i2c-dev.h>
-#include <sys/ioctl.h>
+
 
 //gpio setting tools
 void exportGPIO(int pin) {
@@ -76,28 +72,3 @@ int getGPIOValue(int pin){
     return value; // 읽은 GPIO 값 반환
 
 }
-
-/*//i2c data read
-int get_data_from_addr(int file,int addr)
-{
-    char buffer[2];
-    //buffer give 0x40 -> AN0 output
-    buffer[0] = SENSOR_CHANNEL1;
-    if (ioctl(file, I2C_SLAVE, addr) < 0) {
-        perror("Failed to connect to the sensor");
-        close(file);
-        return 1;
-    }
-    if (write(file, buffer, 1) != 1) {
-       perror("Failed to set channel");
-       close(file);
-       return 1;
-    }
-    if (read(file, buffer, 2) != 2) {
-        perror("Failed to read data from the sensor");
-        close(file);
-        return 1;
-    }
-    // buffer[0] = 8bit output from ADC
-    return buffer[0];
-}*/

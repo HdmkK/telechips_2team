@@ -1,6 +1,13 @@
 #ifndef __MOTOR_H__
 #define __MOTOR_H__
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <time.h>
+#include "gpio.h"
+
 
 //#define PIN1 84 //gpioc 23 : 물리 11번 06 blue -> yellow
 #define PIN1 86 //gpioc 25 : 물리 15번 06 blue -> yellow

@@ -1,9 +1,4 @@
 #include "i2c.h"
-#include <linux/i2c-dev.h>
-#include <sys/ioctl.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include "gpio.h"
 
 
 int i2cfile,ret48,ret49,ret4A,ret4B;
@@ -59,6 +54,8 @@ int init_i2c(){
     }
     fprintf(valueFile, "1");
     fflush(valueFile);
+
+    return 0;
 }
 
 
@@ -67,4 +64,6 @@ int destory_i2c(){
     setGPIOValue(GPIO_PIN,0);
     unexportGPIO(GPIO_PIN);
     close(i2cfile);
+
+    return 0;
 }
