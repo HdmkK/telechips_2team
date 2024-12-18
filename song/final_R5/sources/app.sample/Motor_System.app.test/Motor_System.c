@@ -20,7 +20,7 @@ uint32 calculate_distance(uint32 duration_ticks) {
     return (duration_us * SOUND_SPEED_CM_PER_US) / 2.0;  // 왕복 거리이므로 나누기 2
 }
 
-// 초음파 센서로 거리 값을 읽어옴옴
+// 초음파 센서로 거리 값을 읽어옴
 uint32 ultrasonic_read_distance() {
     timer_on();
     uint32 start_time = 0;
@@ -118,7 +118,7 @@ void Uart_PWM(void) {
         sint32 total_bytes_read = 0;
         uint8 buffer[BUFFER_SIZE] = {0}; // 버퍼 초기화
 
-        // 1. UART로 들어오는 값 확인
+        // UART로 들어오는 값 확인
         while (1) {
             sint32 bytes_read = UART_Read(UART_CH2, &buffer[total_bytes_read], sizeof(buffer) - total_bytes_read - 1);
             if (bytes_read <= 0) {
@@ -135,10 +135,9 @@ void Uart_PWM(void) {
         // 수신 데이터 숫자로 변환
         sint32 receivedValue = atoi((const char *)buffer);
 
-        // 속도 출력 메시지
         dutyCycle = receivedValue * Ultravalue;
 
-        // 4. 듀티 사이클에 따른 모터 제어
+        // 듀티 사이클에 따른 모터 제어
         if (prevDutyCycle <= 5 && dutyCycle > 3) { // 이전 값이 0이고 새로운 값이 들어온 경우
             dutyCycle += 200; // 초기 오버라이드 값 추가
         }
@@ -156,7 +155,7 @@ void Uart_PWM(void) {
         prevDutyCycle = dutyCycle; // 이전 값 갱신
 
 
-        // 5. 현재 듀티 사이클 값을 UART로 전송
+        // 현재 속도 값을 UART로 전송
         char send_buffer[4] = {0};
         snprintf(send_buffer, sizeof(send_buffer), "%ld\n", dutyCycle);
         UART_Write(UART_CH2, (uint8 *)send_buffer, strlen(send_buffer) + 1);
